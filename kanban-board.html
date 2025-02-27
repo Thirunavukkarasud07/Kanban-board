@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Kanban Board</title>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      <style>
+         .drag {
+         opacity: 0.5;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="container pt-5">
+        <h2 class="text-center mb-5">My Kanban Board</h2>
+         <div class="row justify-content-center gap-4 p-md-0 p-3">
+            <div class="col-xl-4 col-lg-5 card borderd pb-4" id="Left">
+               <h3 class="text-center py-3">To do</h3>
+               <form id="mainForm" class="d-flex gap-3 mb-3">
+                  <input type="text" placeholder="Enter the Task" class="form-control" id="taskInput">
+                  <button type="submit" class="btn btn-primary">Add</button>
+               </form>
+               <div id="viewList"></div>
+            </div>
+            <div class="col-xl-4 col-lg-5 card borderd pb-4" id="right">
+               <h3 class="text-center py-3">Done</h3>
+               <div id="completeviewList"></div>
+            </div>
+         </div>
+      </div>
+      <script>
+        // From Submmition
+         let taskInput = document.getElementById('taskInput')
+         let mainForm = document.getElementById('mainForm').addEventListener('submit', function (e) {
+             e.preventDefault();
+             formvalidation();
+         })
+
+         //Window onload function
+         window.onload = () => {
+             viewData();
+             viewCompletedTasks();
+         };
+         
+         //From Validation
+         function formvalidation() {
+             if (taskInput.value === "") {
+                 console.log("input is Empty")
+             } else {
+                 console.log("Your Value is" + " " + taskInput.value)
+                 acceptData()
+             }
+         }
+         
+         // Store LocalStorage
+         let data = JSON.parse(localStorage.getItem('data')) || [];
+         let acceptData = () => {
+             data.push({
+                 Taskname: taskInput.value,
+             });
+             localStorage.setItem('data', JSON.stringify(data));
+             viewData();
+         }
+
+         // View Data         
+         let viewData = () => {
+             let viewList = document.getElementById('viewList');
+             viewList.innerHTML = ""; 
+         
+             data.map((task, index) => {
+                 let listcontent = document.createElement('div');
+                 listcontent.classList.add('conentdiv', 'p-2', 'mb-2', 'rounded', 'd-flex', 'justify-content-between', 'align-items-center', 'border');
+                 listcontent.setAttribute('draggable', 'true');
+                 listcontent.setAttribute('data-index', index);
+                 listcontent.innerHTML = `
+                    <div class="d-flex gap-2 align-items-center">
+                     <input type="radio">
+                      <p class="m-0">${task.Taskname}</p> 
+                     </div>
+                    <div>
+                      <button onclick="editTask(${index})" class="btn py-0 px-2"><i class="fa-regular fa-pen-to-square"></i></button>
+                     <button onclick="deleteTask(${index})" class="btn py-0 px-2"><i class="fa-regular fa-trash-can"></i></button>
+                     </div>
+                 `;
+                 viewList.appendChild(listcontent); 
+             })
+             resetForm();
+         }
+         
+        //  Reset Form
+         let resetForm = () => {  
+             taskInput.value = "";
+         }
+
+        // Edit Task  
+         let editTask = (index) => {
+             const newTask = prompt('Edit your Task', data[index].Taskname);
+             if (newTask !== "" && newTask.trim()) {
+                 data[index].Taskname = newTask;
+                 localStorage.setItem('data', JSON.stringify(data));
+                 viewData();
+             }
+         }
+         
+        //  Delete Task
+         let deleteTask = (index) => {
+             const confirmmes = confirm('Are you sure you want to delete the task?');
+             if (confirmmes) {
+                 data.splice(index, 1)
+                 localStorage.setItem('data', JSON.stringify(data));
+                 viewData();
+             } else {
+                 localStorage.setItem('data', JSON.stringify(data));
+                 viewData();
+             }
+         }
+         
+        //  Delete Complete Task
+         let deleteCompleteTask = (index) => {
+             const confirmmes = confirm('Are you sure you want to delete the task?');
+             if (confirmmes) {
+                 completeTask.splice(index, 1)
+                 localStorage.setItem('completeTask', JSON.stringify(completeTask));
+                 viewCompletedTasks();
+             } else {
+                 localStorage.setItem('completeTask', JSON.stringify(completeTask));
+                 viewCompletedTasks();
+             }
+         }
+         
+        //  Drag and Drop Complete Box
+         let todoistBox = document.getElementById('right');
+         todoistBox.addEventListener('dragover', function (e) {
+             e.preventDefault(); 
+         });
+         let completeTask = JSON.parse(localStorage.getItem('completeTask')) || [];
+         let completeviewList = document.getElementById('completeviewList');
+         completeviewList.innerHTML = "";
+         todoistBox.addEventListener('drop', function (e) {
+             e.preventDefault();
+             const taskIndex = e.dataTransfer.getData("text"); 
+             const task = data.splice(taskIndex, 1)[0]; 
+             completeTask.push({
+                 Taskname: task.Taskname
+             });
+             localStorage.setItem('completeTask', JSON.stringify(completeTask));
+             localStorage.setItem('data', JSON.stringify(data));
+             viewData();
+             viewCompletedTasks(); 
+         });
+         
+        //  View Complete Task
+         function viewCompletedTasks() {
+             let completeviewList = document.getElementById('completeviewList');
+             completeviewList.innerHTML = ""; 
+             let completeTask = JSON.parse(localStorage.getItem('completeTask')) || [];
+             completeTask.map((task, index) => {
+                 let completelistcontent = document.createElement('div');
+                 completelistcontent.classList.add('conentdiv', 'p-2', 'mb-2', 'rounded', 'd-flex', 'justify-content-between', 'align-items-center', 'border');
+                 completelistcontent.setAttribute('draggable', 'true');
+                 completelistcontent.setAttribute('data-index', index);
+                 completelistcontent.innerHTML = `
+                     <div class="d-flex gap-2 align-items-center">
+                         <input type="radio" checked>
+                         <p class="m-0">${task.Taskname}</p> 
+                     </div>
+                     <div>
+                         <button onclick="deleteCompleteTask(${index})" class="btn py-0 px-2">
+                             <i class="fa-regular fa-trash-can"></i>
+                         </button>
+                     </div>
+                 `;
+                 completeviewList.appendChild(completelistcontent);
+             });
+         }
+
+         //  Drag and Drop todo Box
+         let todoistleftBox = document.getElementById('Left');
+         todoistleftBox.addEventListener('dragover', function (e) {
+             e.preventDefault(); 
+         });
+         todoistleftBox.addEventListener('drop', function (e) {
+             e.preventDefault();
+             const taskIndex = e.dataTransfer.getData("text"); 
+             const task = completeTask.splice(taskIndex, 1)[0];
+             data.push({
+                 Taskname: task.Taskname
+             });
+             localStorage.setItem('completeTask', JSON.stringify(completeTask));
+             localStorage.setItem('data', JSON.stringify(data));
+         
+             viewData();
+             viewCompletedTasks();
+         });
+
+        //  Index based drag
+         document.addEventListener('dragstart', function (e) {
+             if (e.target.classList.contains('conentdiv')) {
+                 const index = e.target.getAttribute('data-index');
+                 e.dataTransfer.setData("text", index); 
+             }
+         });
+      </script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+   </body>
+</html>
